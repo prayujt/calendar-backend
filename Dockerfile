@@ -9,7 +9,7 @@ RUN cargo build --release
 COPY . .
 
 
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 WORKDIR /usr/src/app
 
