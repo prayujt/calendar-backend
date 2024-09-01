@@ -2,14 +2,11 @@ FROM rust:1.72 as builder
 
 WORKDIR /usr/src/app
 
-COPY Cargo.toml Cargo.lock ./
-
-RUN cargo build --release
-RUN rm -f target/release/deps/calendar-backend*
-
 COPY . .
 
 RUN cargo build --release
+
+COPY . .
 
 
 FROM debian:buster-slim
