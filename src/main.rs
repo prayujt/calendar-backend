@@ -44,6 +44,7 @@ async fn verify_session(
     kratos_configuration: Configuration,
 ) -> Result<Option<Session>, warp::Rejection> {
     let token = session_cookie.as_deref();
+    println!("Session Cookie: {:?}", token);
 
     let result = to_session(
         &kratos_configuration,
@@ -51,6 +52,7 @@ async fn verify_session(
         token,
         None,
     ).await;
+    println!("Session: {:?}", result);
 
     match result {
         Ok(session) => Ok(Some(session)),
