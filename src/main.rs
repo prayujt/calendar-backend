@@ -3,22 +3,44 @@ use warp::http::StatusCode;
 
 use serde_json::json;
 
-use ory_kratos_client::apis::configuration::Configuration;
-use ory_kratos_client::apis::frontend_api::to_session;
-use ory_kratos_client::models::Session;
+use reqwest::Client;
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Session {
+    id: String,
+    active: bool,
+    identity: Identity,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Identity {
+    id: String,
+    state: String,
+    traits: Traits,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Traits {
+    email: String,
+    first_name: String,
+    last_name: String,
+    username: String,
+}
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
 
-    let kratos_configuration = Configuration {
-        base_path: "https://idp.prayujt.com".to_owned(),
-        ..Default::default()
-    };
+    let kratos_base_url = "https://idp.prayujt.com";
+
+    let client = Client::new();
 
     let with_session = warp::cookie::optional("ory_kratos_session")
-        .and(warp::any().map(move || kratos_configuration.clone()))
+        .and(warp::any().map(move || client.clone()))
+        .and(warp::any().map(move || kratos_base_url.to_string()))
         .and_then(verify_session);
 
     let get_events_route = warp::get()
@@ -38,25 +60,29 @@ async fn main() {
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }
 
-
 async fn verify_session(
     session_cookie: Option<String>,
-    kratos_configuration: Configuration,
+    client: Client,
+    kratos_base_url: String,
 ) -> Result<Option<Session>, warp::Rejection> {
-    let token = session_cookie.as_deref();
-    println!("Session Cookie: {:?}", token);
+    if let Some(token) = session_cookie {
+        let url = format!("{}/sessions/whoami", kratos_base_url);
+        let response = client
+            .get(&url)
+            .header("Cookie", format!("ory_kratos_session={:?}", token))
+            .send()
+            .await;
 
-    let result = to_session(
-        &kratos_configuration,
-        token,
-        token,
-        None,
-    ).await;
-    println!("Session: {:?}", result);
-
-    match result {
-        Ok(session) => Ok(Some(session)),
-        Err(_) => Ok(None),
+        if let Ok(response) = response {
+            if response.status().is_success() {
+                if let Ok(session) = response.json::<Session>().await {
+                    return Ok(Some(session));
+                }
+            }
+        }
+        Ok(None)
+    } else {
+        Ok(None)
     }
 }
 
