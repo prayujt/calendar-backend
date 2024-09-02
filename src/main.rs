@@ -13,7 +13,7 @@ async fn main() {
     dotenv::dotenv().ok();
 
     let kratos_configuration = Configuration {
-        base_path: "http://kratos-admin.kratos.svc.cluster.local".to_owned(),
+        base_path: "https://idp.prayujt.com".to_owned(),
         ..Default::default()
     };
 
