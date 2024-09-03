@@ -1,27 +1,26 @@
 use warp::Filter;
-use warp::http::StatusCode;
-
-use serde_json::json;
-
 use reqwest::Client;
+use dotenv::dotenv;
+use std::env;
 
-use serde::{Deserialize, Serialize};
+mod events;
+mod db;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 struct Session {
     id: String,
     active: bool,
     identity: Identity,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 struct Identity {
     id: String,
     state: String,
     traits: Traits,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Traits {
     email: String,
@@ -32,27 +31,32 @@ struct Traits {
 
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().ok();
+    dotenv().ok();
 
-    let kratos_base_url = "https://idp.prayujt.com";
+    let kratos_base_url = env::var("KRATOS_BASE_URL").unwrap_or_else(|_| "https://idp.prayujt.com".to_string());
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let client = Client::new();
+    let pool = db::create_pool(&database_url).await;
 
     let with_session = warp::cookie::optional("ory_kratos_session")
         .and(warp::any().map(move || client.clone()))
-        .and(warp::any().map(move || kratos_base_url.to_string()))
+        .and(warp::any().map(move || kratos_base_url.clone()))
         .and_then(verify_session);
+    let with_pool = warp::any().map(move || pool.clone());
 
     let get_events_route = warp::get()
         .and(warp::path("events"))
         .and(with_session.clone())
-        .and_then(get_events);
+        .and(with_pool.clone())
+        .and_then(events::get_events);
 
     let post_events_route = warp::post()
         .and(warp::path("events"))
         .and(warp::body::json())
         .and(with_session)
-        .and_then(post_events);
+        .and(with_pool)
+        .and_then(events::post_events);
 
     let routes = get_events_route.or(post_events_route);
 
@@ -83,37 +87,5 @@ async fn verify_session(
         Ok(None)
     } else {
         Ok(None)
-    }
-}
-
-// GET /events
-async fn get_events(session: Option<Session>) -> Result<impl warp::Reply, warp::Rejection> {
-    if let Some(session) = session {
-        Ok(warp::reply::with_status(
-            warp::reply::json(&session),
-            StatusCode::OK
-        ))
-    } else {
-        let error_message = json!({ "error": "Unauthorized" });
-        Ok(warp::reply::with_status(
-            warp::reply::json(&error_message),
-            StatusCode::UNAUTHORIZED
-        ))
-    }
-}
-
-// POST /events
-async fn post_events(_body: serde_json::Value, session: Option<Session>) -> Result<impl warp::Reply, warp::Rejection> {
-    if let Some(session) = session {
-        Ok(warp::reply::with_status(
-            warp::reply::json(&session),
-            StatusCode::OK
-        ))
-    } else {
-        let error_message = json!({ "error": "Unauthorized" });
-        Ok(warp::reply::with_status(
-            warp::reply::json(&error_message),
-            StatusCode::UNAUTHORIZED
-        ))
     }
 }

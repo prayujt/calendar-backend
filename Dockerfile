@@ -1,12 +1,10 @@
-FROM rust:1.72 as builder
+FROM rust:1.72 AS builder
 
 WORKDIR /usr/src/app
 
 COPY . .
 
 RUN cargo build --release
-
-COPY . .
 
 
 FROM debian:bookworm-slim
