@@ -35,6 +35,8 @@ async fn main() {
 
     let kratos_base_url = env::var("KRATOS_BASE_URL").unwrap_or_else(|_| "https://idp.prayujt.com".to_string());
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    println!("Using Kratos base URL: {}", kratos_base_url);
+    println!("Using database URL: {}", database_url);
 
     let client = Client::new();
     let pool = db::create_pool(&database_url).await;

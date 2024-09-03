@@ -8,11 +8,16 @@ use crate::Session;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Event {
+    pub id: String,
+    pub user_id: String,
     pub title: String,
     pub description: String,
     pub duration: i32,
     #[serde(with = "chrono::serde::ts_seconds")]
-    pub time: DateTime<Utc>,
+    pub date: DateTime<Utc>,
+    pub accepted: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 // GET /events
@@ -23,7 +28,8 @@ pub async fn get_events(
     if session.is_some() {
         match sqlx::query_as!(
             Event,
-            "SELECT title, description, duration, time FROM events"
+            "SELECT * FROM events WHERE user_id = $1",
+            session.unwrap().identity.id,
         )
         .fetch_all(&pool)
         .await
@@ -54,11 +60,10 @@ pub async fn post_events(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     if session.is_some() {
         match sqlx::query!(
-            "INSERT INTO events (title, description, duration, time) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO events (title, description, duration) VALUES ($1, $2, $3)",
             event.title,
             event.description,
             event.duration,
-            event.time
         )
         .execute(&pool)
         .await
