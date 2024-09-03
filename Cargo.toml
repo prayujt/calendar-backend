@@ -13,3 +13,5 @@ warp = "0.3.7"
 openssl = { version = "0.10", features = ["vendored"] }
 sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-rustls", "offline", "uuid", "time"] }
 chrono = { version = "0.4", features = ["serde"] }
+time = { version = "0.3", features = ["serde"] }
+uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }

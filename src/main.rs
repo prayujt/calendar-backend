@@ -3,8 +3,9 @@ use reqwest::Client;
 use dotenv::dotenv;
 use std::env;
 
-mod events;
 mod db;
+mod events;
+mod utils;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 struct Session {
