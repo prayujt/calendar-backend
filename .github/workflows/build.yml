@@ -7,11 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [self-hosted, ubuntu-latest]
-      fail-fast: false
+    runs-on: [self-hosted, ubuntu-latest]
 
     steps:
       - name: Checkout code
