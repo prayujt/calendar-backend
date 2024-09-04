@@ -1,3 +1,4 @@
+-- Add migration script here
 CREATE TABLE events (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,

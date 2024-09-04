@@ -13,6 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Create .env file
+        run: |
+          cat << EOF >> .env
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          EOF
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
