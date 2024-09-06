@@ -39,6 +39,8 @@ jobs:
           done
 
       - name: Start Keep PostgreSQL Alive Process
+        env:
+          PGPASSWORD: password
         run: |
           while true; do
             psql -h localhost -U postgres -d test_database -c "SELECT 1"
