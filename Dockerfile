@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
+ENV GOTOOLCHAIN=auto
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o calendar-backend ./cmd/calendar-backend
 
 
