@@ -132,6 +132,8 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						Extract the event title, description, duration (in minutes), and date from the following text.
 						Make sure the date is in ISO 8601 format. If the date is something like "today" or "tomorrow", or "next tuesday", convert it to the appropriate date.
 						For context, the exact time right now is %s (in ISO 8601 format).
+						This current time is in Eastern Time.
+						Generate the ISO 8601 date and time for the event in UTC please, taking into account Daylight Saving Time to determine if Eastern Time is currently in EDT or EST.
 						By default, if the duration is not specified, it should be 60 minutes.
 					`, time.Now().Format(time.RFC3339)),
 				},
