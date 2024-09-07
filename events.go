@@ -39,6 +39,9 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
 	var events []Event
 	Query(&events, "SELECT * FROM events WHERE user_id = $1", userId)
 
+	if len(events) == 0 {
+		events = []Event{}
+	}
 	json.NewEncoder(w).Encode(events)
 }
 
