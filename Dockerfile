@@ -17,6 +17,10 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o calendar-backend
 
 FROM debian:bookworm-slim
 
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/app
 
 COPY --from=builder /usr/src/app/calendar-backend .
