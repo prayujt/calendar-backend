@@ -50,6 +50,9 @@ func main() {
 	r.HandleFunc("/events", getEvents).Methods("GET")
 	r.HandleFunc("/events", postEvent).Methods("POST")
 	r.HandleFunc("/events/generate", generateEventInformation).Methods("POST")
+	r.HandleFunc("/events/{id}", getEvent).Methods("GET")
+	r.HandleFunc("/events/{id}", updateEvent).Methods("PUT")
+	r.HandleFunc("/events/{id}", deleteEvent).Methods("DELETE")
 
 	fmt.Println("Server running on 0.0.0.0:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

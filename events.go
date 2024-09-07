@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -75,6 +76,83 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(event)
 }
 
+// GET /events/{id}
+func getEvent(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+
+	userId := session.Identity.Id
+	eventId := vars["id"]
+
+	var event []Event
+	Query(&event, "SELECT * FROM events WHERE id = $1 AND user_id = $2", eventId, userId)
+
+	if len(event) == 0 {
+		http.Error(w, `{"error": "Event not found"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(event[0])
+}
+
+// PUT /events/{id}
+func updateEvent(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+
+	userId := session.Identity.Id
+	eventId := vars["id"]
+
+	var event Event
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		http.Error(w, `{"error": "Invalid request"}`, http.StatusBadRequest)
+		return
+	}
+
+	_, err := Execute(
+		"UPDATE events SET title = $1, description = $2, duration = $3, date = $4, accepted = $5 WHERE id = $6 AND user_id = $7",
+		event.Title, event.Description, event.Duration, event.Date, event.Accepted, eventId, userId,
+	)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// DELETE /events/{id}
+func deleteEvent(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+
+	userId := session.Identity.Id
+	eventId := vars["id"]
+
+	_, err := Execute("DELETE FROM events WHERE user_id = $1 AND id = $2", userId, eventId)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // POST /events/generate
 func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)
@@ -90,7 +168,6 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Define the OpenAI function schema
 	functions := []openai.FunctionDefinition{
 		{
 			Name:        "extract_event_details",
@@ -136,8 +213,14 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						e.g. If you are asked about an event at 5:10 PM, you should convert that to 9:10 PM UTC if it is currently in Eastern Daylight Time (EDT), or 10:10 PM UTC if it is currently EST.
 						Similarly, the day provided should be converted to the appropriate date in UTC.
 						e.g. If you are given an event at 11:50 PM on the 31st of October, you should convert that to 3:50 AM UTC on the 1st of November.
+						Another example is, if given an event at 8:00PM on the 1st of November, you should convert that to 12:00AM UTC on the 2nd of November if it is currently in EDT
 						Generate the ISO 8601 date and time for the event in UTC please, taking into account Daylight Saving Time to determine if Eastern Time is currently in EDT or EST.
 						By default, if the duration is not specified, it should be 60 minutes.
+						For title and description, don't simply extract it word for word. Instead, generate a title and description that captures the essence of the event.
+						Ensure the format of the title is in title case, with words capitalized except for articles, prepositions, and conjunctions.
+						For the description, if information is given then provide a short description of the event. If no information is given, then leave it blank.
+						For example, if the content given is "Meeting John at 5:00 PM", the title could be "Meeting with John" and the description would be blank.
+						If the content given is "Meeting John at 5:00 PM to discuss the project", the title could be "Project Discussion with John" and the description could be "Discuss the project with John".
 					`, time.Now().UTC().Format("2006-01-02T15:04:05-0700")),
 				},
 				{
