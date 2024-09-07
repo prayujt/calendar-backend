@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o calendar-backend ./cmd/calendar-backend
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o calendar-backend
 
 
 FROM debian:bookworm-slim
