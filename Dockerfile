@@ -1,25 +1,19 @@
-FROM rust:1.72 AS builder
+FROM golang:1.21 AS builder
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libssl-dev \
-    pkg-config \
-    clang \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ARG TARGETARCH=arm64
 
 WORKDIR /usr/src/app
 
 COPY . .
 
-RUN cargo build --release
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o calendar-backend ./cmd/calendar-backend
 
 
 FROM debian:bookworm-slim
 
 WORKDIR /usr/src/app
 
-COPY --from=builder /usr/src/app/target/release/calendar-backend .
+COPY --from=builder /usr/src/app/calendar-backend .
 
 EXPOSE 8080
 

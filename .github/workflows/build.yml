@@ -9,43 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:13
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_DB: test_database
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 40
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up environment variables
-        run: echo "DATABASE_URL=postgres://postgres:password@localhost:5432/test_database" > .env
-
-      - name: Wait for PostgreSQL to be ready
-        run: |
-          until pg_isready -h localhost -p 5432 -U postgres; do
-            echo "Waiting for PostgreSQL to be ready..."
-            sleep 5
-          done
-
-      - name: Start Keep PostgreSQL Alive Process
-        env:
-          PGPASSWORD: password
-        run: |
-          while true; do
-            psql -h localhost -U postgres -d test_database -c "SELECT 1"
-            sleep 300
-          done &
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -60,12 +26,3 @@ jobs:
       - name: Build and push Docker image
         run: |
           docker buildx build --platform linux/arm64 -t docker.prayujt.com/calendar-backend --push .
-
-      - name: Build the Rust project
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/test_database
-        run: |
-          cargo build --release
-
-      - name: Check PostgreSQL logs (end)
-        run: docker logs ${{ job.services.postgres.id }}
