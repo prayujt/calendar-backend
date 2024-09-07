@@ -9,9 +9,10 @@ import (
 )
 
 type Calendar struct {
-	Id    string `json:"id" database:"id"`
-	Name  string `json:"name" database:"name"`
-	Color string `json:"color" database:"color"`
+	Id        string `json:"id" database:"id"`
+	Name      string `json:"name" database:"name"`
+	Color     string `json:"color" database:"color"`
+	IsDefault bool   `json:"isDefault" database:"is_default"`
 }
 
 // GET /calendars
@@ -25,13 +26,19 @@ func getCalendars(w http.ResponseWriter, r *http.Request) {
 	calendars := []Calendar{}
 	Query(&calendars,
 		`
-		SELECT calendar.id, calendar.name, calendar.color
+		SELECT calendars.id AS id, calendars.name AS name, calendars.color AS color
 		FROM calendar_members
-		JOIN calendar ON calendar.id = calendar_members.calendar_id
+		JOIN calendars ON calendars.id = calendar_members.calendar_id
 		WHERE user_id = $1
 		`,
 		session.Identity.Id,
 	)
+
+	if len(calendars) == 0 {
+		calendars = []Calendar{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(calendars)
 }
 
 // POST /calendars
@@ -52,12 +59,13 @@ func createCalendar(w http.ResponseWriter, r *http.Request) {
 	calendar.Id = uuid.New().String()
 	_, err = Execute(
 		`
-		INSERT INTO calendar (id, name, color)
-		VALUES ($1, $2, $3)
+		INSERT INTO calendars (id, name, color, is_default)
+		VALUES ($1, $2, $3, $4)
 		`,
 		calendar.Id,
 		calendar.Name,
 		calendar.Color,
+		calendar.IsDefault,
 	)
 	if err != nil {
 		http.Error(w, `{"error": "Error creating calendar"}`, http.StatusInternalServerError)
@@ -101,7 +109,7 @@ func updateCalendar(w http.ResponseWriter, r *http.Request) {
 
 	_, err = Execute(
 		`
-		UPDATE calendar
+		UPDATE calendars
 		SET name = $1, color = $2
 		WHERE id = $3
 		`,
@@ -131,7 +139,7 @@ func deleteCalendar(w http.ResponseWriter, r *http.Request) {
 
 	_, err := Execute(
 		`
-		DELETE FROM calendar
+		DELETE FROM calendars
 		WHERE id = $1
 		`,
 		calendarId,

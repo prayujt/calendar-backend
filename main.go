@@ -49,7 +49,13 @@ func main() {
 
 	InitDatabase(databaseUrl)
 	log.Println("Connected to database")
-	log.Printf("Using Kratos at: %s", kratosBaseUrl)
+
+	if environment == "development" {
+		log.Println("Running in development mode")
+	} else {
+		log.Println("Running in production mode")
+		log.Printf("Using Kratos at: %s", kratosBaseUrl)
+	}
 
 	r := mux.NewRouter()
 

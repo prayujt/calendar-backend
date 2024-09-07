@@ -16,7 +16,7 @@ import (
 
 type Event struct {
 	Id          string  `json:"id" database:"id"`
-	CalendarId  string  `json:"calendar_id" database:"calendar_id"`
+	CalendarId  string  `json:"calendarId" database:"calendar_id"`
 	Title       string  `json:"title" database:"title`
 	Description *string `json:"description" database:"description"`
 	Duration    int     `json:"duration" database:"duration"`
