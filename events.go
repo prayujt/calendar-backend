@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
-	openai "github.com/sashabaranov/go-openai"
 )
 
 type Event struct {
