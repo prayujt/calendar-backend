@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/sashabaranov/go-openai"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -123,7 +124,7 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 	response, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4,
+			Model: openai.GPT4o,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role: openai.ChatMessageRoleSystem,
