@@ -45,7 +45,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/events", getEvents).Methods("GET")
 	r.HandleFunc("/events", postEvent).Methods("POST")
-	r.HandleFunc("/events/ai", generateEventInformation).Methods("POST")
+	r.HandleFunc("/events/generate", generateEventInformation).Methods("POST")
 
 	fmt.Println("Server running on 0.0.0.0:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

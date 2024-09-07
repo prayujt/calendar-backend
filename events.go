@@ -72,74 +72,7 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(event)
 }
 
-// func generateEventInformation(w http.ResponseWriter, r *http.Request) {
-// 	session := getSession(r)
-// 	if session == nil {
-// 		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-// 		return
-// 	}
-
-// 	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-// 	var request GenerateEventRequest
-// 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-// 		http.Error(w, `{"error": "Invalid request"}`, http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	response, err := client.CreateChatCompletion(
-// 		context.Background(),
-// 		openai.ChatCompletionRequest{
-// 			Model: openai.GPT4o,
-// 			Messages: []openai.ChatCompletionMessage{
-// 				{
-// 					Role: openai.ChatMessageRoleSystem,
-// 					Content: `
-// 						You are an event information parser.
-// 						Your goal is to extract the event title, description, duration (in minutes), and date from the following text.
-// 						Your response should be in the following JSON format:
-// 						{
-// 							"title": string,
-// 							"description": string,
-// 							"duration": int,
-// 							"date": string,
-// 						}
-// 						Please ensure that the date is in ISO 8601 format. If the date says words such as "today" or "tomorrow", please convert it to the appropriate date.
-// 						Here is the text you need to parse:
-// 				`},
-// 				{
-// 					Role:    openai.ChatMessageRoleUser,
-// 					Content: request.Content,
-// 				},
-// 			},
-// 		},
-// 	)
-
-// 	if err != nil {
-// 		log.Println(err)
-// 		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	var responseContent = response.Choices[0].Message.Content
-// 	var event Event
-
-// 	err = json.Unmarshal([]byte(responseContent), &event)
-// 	if err != nil {
-// 		log.Println("Error parsing event data:", err)
-// 		http.Error(w, `{"error": "Invalid event data format"}`, http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(event)
-// _, err = Execute(
-// 	`
-// 	INSERT INTO events (id, user_id, title, description, duration, date, accepted)
-// 	VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)",
-// 	`,
-// 	session.Identity.Id, response.Completions[0].Data["title"], response.Completions[0].Data["description"], response.Completions[0].Data["duration"], response.Completions[0].Data["date"], false,
-// }
-
+// POST /events/generate
 func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)
 	if session == nil {
