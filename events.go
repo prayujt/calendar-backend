@@ -9,13 +9,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/sashabaranov/go-openai"
 )
 
 type Event struct {
 	Id          string  `json:"id" database:"id"`
-	UserId      string  `json:"userId" database:"user_id"`
+	CalendarId  string  `json:"calendar_id" database:"calendar_id"`
 	Title       string  `json:"title" database:"title`
 	Description *string `json:"description" database:"description"`
 	Duration    int     `json:"duration" database:"duration"`
@@ -24,7 +25,8 @@ type Event struct {
 }
 
 type GenerateEventRequest struct {
-	Content string `json:"content"`
+	Content    string `json:"content"`
+	CalendarId string `json:"calendar_id"`
 }
 
 // GET /events
@@ -38,7 +40,13 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
 	userId := session.Identity.Id
 
 	var events []Event
-	Query(&events, "SELECT * FROM events WHERE user_id = $1", userId)
+	Query(&events,
+		`
+		SELECT * FROM events
+		WHERE calendar_id IN (SELECT calendar_id FROM calendar_members WHERE user_id = $1)
+		`,
+		userId,
+	)
 
 	if len(events) == 0 {
 		events = []Event{}
@@ -47,7 +55,7 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /events
-func postEvent(w http.ResponseWriter, r *http.Request) {
+func createEvent(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)
 	if session == nil {
 		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
@@ -60,11 +68,13 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event.UserId = session.Identity.Id
+	event.Id = uuid.New().String()
 
 	_, err := Execute(
-		"INSERT INTO events (id, user_id, title, description, duration, date, accepted) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)",
-		event.UserId, event.Title, event.Description, event.Duration, event.Date, event.Accepted,
+		`
+		INSERT INTO events (id, calendar_id, title, description, duration, date, accepted)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		event.Id, event.CalendarId, event.Title, event.Description, event.Duration, event.Date, event.Accepted,
 	)
 	if err != nil {
 		log.Println(err)
@@ -255,12 +265,13 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	event_id := uuid.New().String()
 	_, err = Execute(
 		`
-		INSERT INTO events (id, user_id, title, description, duration, date, accepted)
-		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+		INSERT INTO events (id, calendar_id, title, description, duration, date, accepted)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		`,
-		session.Identity.Id, functionResponse.Title, functionResponse.Description, functionResponse.Duration, functionResponse.Date.Format(time.RFC3339), true,
+		event_id, request.CalendarId, functionResponse.Title, functionResponse.Description, functionResponse.Duration, functionResponse.Date.Format(time.RFC3339), true,
 	)
 	if err != nil {
 		log.Println("Error inserting event into database:", err)
@@ -268,6 +279,16 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	event := Event{
+		Id:          event_id,
+		CalendarId:  "",
+		Title:       functionResponse.Title,
+		Description: &functionResponse.Description,
+		Duration:    functionResponse.Duration,
+		Date:        functionResponse.Date.Format(time.RFC3339),
+		Accepted:    true,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(functionResponse)
+	json.NewEncoder(w).Encode(event)
 }

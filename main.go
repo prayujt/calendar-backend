@@ -31,6 +31,7 @@ type Traits struct {
 }
 
 var kratosBaseUrl string
+var environment string
 
 func main() {
 	kratosBaseUrl = os.Getenv("KRATOS_BASE_URL")
@@ -41,24 +42,50 @@ func main() {
 	if databaseUrl == "" {
 		log.Fatal("DATABASE_URL must be set")
 	}
+	environment = os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development"
+	}
 
 	InitDatabase(databaseUrl)
 	log.Println("Connected to database")
 	log.Printf("Using Kratos at: %s", kratosBaseUrl)
 
 	r := mux.NewRouter()
+
 	r.HandleFunc("/events", getEvents).Methods("GET")
-	r.HandleFunc("/events", postEvent).Methods("POST")
-	r.HandleFunc("/events/generate", generateEventInformation).Methods("POST")
 	r.HandleFunc("/events/{id}", getEvent).Methods("GET")
+	r.HandleFunc("/events", createEvent).Methods("POST")
+	r.HandleFunc("/events/generate", generateEventInformation).Methods("POST")
 	r.HandleFunc("/events/{id}", updateEvent).Methods("PUT")
 	r.HandleFunc("/events/{id}", deleteEvent).Methods("DELETE")
+
+	r.HandleFunc("/calendars", getCalendars).Methods("GET")
+	r.HandleFunc("/calendars", createCalendar).Methods("POST")
+	r.HandleFunc("/calendars/{id}", updateCalendar).Methods("PUT")
+	r.HandleFunc("/calendars/{id}", deleteCalendar).Methods("DELETE")
 
 	fmt.Println("Server running on 0.0.0.0:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 func getSession(r *http.Request) *Session {
+	if environment == "development" {
+		return &Session{
+			Active: true,
+			Identity: Identity{
+				Id:    "b849d4e4-de61-4c27-b6c6-7f2566f7079f",
+				State: "active",
+				Traits: Traits{
+					Email:     "prayujtuli@hotmail.com",
+					FirstName: "Prayuj",
+					LastName:  "Tuli",
+					Username:  "prayujt",
+				},
+			},
+		}
+	}
+
 	sessionCookie, err := r.Cookie("ory_kratos_session")
 	if err != nil {
 		return nil
