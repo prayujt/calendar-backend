@@ -30,8 +30,10 @@ type Traits struct {
 	Username  string `json:"username"`
 }
 
+var kratosBaseUrl string
+
 func main() {
-	kratosBaseUrl := os.Getenv("KRATOS_BASE_URL")
+	kratosBaseUrl = os.Getenv("KRATOS_BASE_URL")
 	if kratosBaseUrl == "" {
 		kratosBaseUrl = "https://idp.prayujt.com"
 	}
@@ -41,6 +43,8 @@ func main() {
 	}
 
 	InitDatabase(databaseUrl)
+	log.Println("Connected to database")
+	log.Printf("Using Kratos at: %s", kratosBaseUrl)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/events", getEvents).Methods("GET")
@@ -56,9 +60,10 @@ func getSession(r *http.Request) *Session {
 	if err != nil {
 		return nil
 	}
+	log.Printf("Session cookie: %s", sessionCookie.Value)
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://idp.prayujt.com/sessions/whoami", nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sessions/whoami", kratosBaseUrl), nil)
 	if err != nil {
 		return nil
 	}
@@ -66,6 +71,8 @@ func getSession(r *http.Request) *Session {
 	req.Header.Set("Cookie", fmt.Sprintf("ory_kratos_session=%s", sessionCookie.Value))
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
+		log.Printf("Error: %v", err)
+		log.Printf("Status code: %d", resp.StatusCode)
 		return nil
 	}
 	defer resp.Body.Close()
