@@ -131,11 +131,12 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						You are an event information parser.
 						Extract the event title, description, duration (in minutes), and date from the following text.
 						Make sure the date is in ISO 8601 format. If the date is something like "today" or "tomorrow", or "next tuesday", convert it to the appropriate date.
-						For context, the exact time right now is %s (in ISO 8601 format).
-						This current time is in Eastern Time.
+						For context, the exact time right now is %s (in ISO 8601 format and UTC).
+						The event details that you will be given below will be in Eastern Time (ET).
+						e.g. If you are asked about an event at 5:10 PM, you should convert that to 9:10 PM UTC if it is currently in Eastern Daylight Time (EDT), or 10:10 PM UTC if it is currently EST.
 						Generate the ISO 8601 date and time for the event in UTC please, taking into account Daylight Saving Time to determine if Eastern Time is currently in EDT or EST.
 						By default, if the duration is not specified, it should be 60 minutes.
-					`, time.Now().Format(time.RFC3339)),
+					`, time.Now().UTC().Format("2006-01-02T15:04:05-0700")),
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
