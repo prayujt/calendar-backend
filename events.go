@@ -134,6 +134,8 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						For context, the exact time right now is %s (in ISO 8601 format and UTC).
 						The event details that you will be given below will be in Eastern Time (ET).
 						e.g. If you are asked about an event at 5:10 PM, you should convert that to 9:10 PM UTC if it is currently in Eastern Daylight Time (EDT), or 10:10 PM UTC if it is currently EST.
+						Similarly, the day provided should be converted to the appropriate date in UTC.
+						e.g. If you are given an event at 11:50 PM on the 31st of October, you should convert that to 3:50 AM UTC on the 1st of November.
 						Generate the ISO 8601 date and time for the event in UTC please, taking into account Daylight Saving Time to determine if Eastern Time is currently in EDT or EST.
 						By default, if the duration is not specified, it should be 60 minutes.
 					`, time.Now().UTC().Format("2006-01-02T15:04:05-0700")),
