@@ -280,7 +280,7 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 
 	event := Event{
 		Id:          event_id,
-		CalendarId:  "",
+		CalendarId:  request.CalendarId,
 		Title:       functionResponse.Title,
 		Description: &functionResponse.Description,
 		Duration:    functionResponse.Duration,
