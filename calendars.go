@@ -57,6 +57,10 @@ func createCalendar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	calendar.Id = uuid.New().String()
+	if calendar.IsDefault {
+		calendar.Color = "#93c4fd"
+	}
+
 	_, err = Execute(
 		`
 		INSERT INTO calendars (id, name, color, is_default)
