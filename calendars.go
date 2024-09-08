@@ -26,7 +26,7 @@ func getCalendars(w http.ResponseWriter, r *http.Request) {
 	calendars := []Calendar{}
 	Query(&calendars,
 		`
-		SELECT calendars.id AS id, calendars.name AS name, calendars.color AS color
+		SELECT calendars.id AS id, calendars.name AS name, calendars.color AS color, calendars.is_default AS isDefault
 		FROM calendar_members
 		JOIN calendars ON calendars.id = calendar_members.calendar_id
 		WHERE user_id = $1
