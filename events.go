@@ -26,7 +26,7 @@ type Event struct {
 
 type GenerateEventRequest struct {
 	Content    string `json:"content"`
-	CalendarId string `json:"calendar_id"`
+	CalendarId string `json:"calendarId"`
 }
 
 // GET /events
