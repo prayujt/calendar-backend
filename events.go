@@ -150,10 +150,9 @@ func deleteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	vars := mux.Vars(r)
 
-	userId := session.Identity.Id
 	eventId := vars["id"]
 
-	_, err := Execute("DELETE FROM events WHERE user_id = $1 AND id = $2", userId, eventId)
+	_, err := Execute("DELETE FROM events WHERE id = $1", eventId)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)

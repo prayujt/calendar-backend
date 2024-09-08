@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -72,7 +73,18 @@ func main() {
 	r.HandleFunc("/calendars/{id}", deleteCalendar).Methods("DELETE")
 
 	fmt.Println("Server running on 0.0.0.0:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+
+	if environment == "development" {
+		corsMiddleware := handlers.CORS(
+			handlers.AllowedOrigins([]string{"http://localhost:5173"}),
+			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+			handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cookie"}),
+			handlers.AllowCredentials(),
+		)
+		log.Fatal(http.ListenAndServe(":8080", corsMiddleware(r)))
+	} else {
+		log.Fatal(http.ListenAndServe(":8080", r))
+	}
 }
 
 func getSession(r *http.Request) *Session {
