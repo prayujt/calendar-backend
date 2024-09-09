@@ -76,7 +76,7 @@ func main() {
 
 	if environment == "development" {
 		corsMiddleware := handlers.CORS(
-			handlers.AllowedOrigins([]string{"http://localhost:5173"}),
+			handlers.AllowedOrigins([]string{"http://localhost:5173", "http://localhost:4173"}),
 			handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 			handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cookie"}),
 			handlers.AllowCredentials(),
