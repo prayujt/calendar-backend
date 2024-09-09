@@ -119,7 +119,6 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	vars := mux.Vars(r)
 
-	userId := session.Identity.Id
 	eventId := vars["id"]
 
 	var event Event
@@ -129,8 +128,8 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err := Execute(
-		"UPDATE events SET title = $1, description = $2, duration = $3, date = $4, accepted = $5 WHERE id = $6 AND user_id = $7",
-		event.Title, event.Description, event.Duration, event.Date, event.Accepted, eventId, userId,
+		"UPDATE events SET title = $1, description = $2, duration = $3, date = $4, accepted = $5 WHERE id = $6",
+		event.Title, event.Description, event.Duration, event.Date, event.Accepted, eventId,
 	)
 	if err != nil {
 		log.Println(err)
