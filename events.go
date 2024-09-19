@@ -15,13 +15,13 @@ import (
 )
 
 type Event struct {
-	Id          string  `json:"id" database:"id"`
-	CalendarId  string  `json:"calendarId" database:"calendar_id"`
-	Title       string  `json:"title" database:"title`
-	Description *string `json:"description" database:"description"`
-	Duration    int     `json:"duration" database:"duration"`
-	Date        string  `json:"date" database:"date`
-	Accepted    bool    `json:"accepted" database:"accepted`
+	Id           string  `json:"id" database:"id"`
+	CalendarId   string  `json:"calendarId" database:"calendar_id"`
+	Title        string  `json:"title" database:"title`
+	Description  *string `json:"description" database:"description"`
+	Duration     int     `json:"duration" database:"duration"`
+	Date         string  `json:"date" database:"date`
+	RecurrenceId string  `json:"recurrenceId" database:"recurrence_id"`
 }
 
 type GenerateEventRequest struct {
@@ -72,9 +72,9 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 
 	_, err := Execute(
 		`
-		INSERT INTO events (id, calendar_id, title, description, duration, date, accepted)
+		INSERT INTO events (id, calendar_id, title, description, duration, date)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		event.Id, event.CalendarId, event.Title, event.Description, event.Duration, event.Date, event.Accepted,
+		event.Id, event.CalendarId, event.Title, event.Description, event.Duration, event.Date,
 	)
 	if err != nil {
 		log.Println(err)
@@ -118,8 +118,8 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-
 	eventId := vars["id"]
+	recurring := r.URL.Query().Get("recurring")
 
 	var event Event
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
@@ -127,14 +127,37 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := Execute(
-		"UPDATE events SET title = $1, description = $2, duration = $3, date = $4, accepted = $5 WHERE id = $6",
-		event.Title, event.Description, event.Duration, event.Date, event.Accepted, eventId,
-	)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
-		return
+	if recurring == "true" {
+		var events []Event
+		Query(&events, "SELECT * FROM events WHERE id = $1", eventId)
+		recurrence_id := events[0].RecurrenceId
+		date := events[0].Date
+
+		if recurrence_id == "" {
+			log.Println("Event is not recurring")
+			http.Error(w, `{"error": "Event is not recurring"}`, http.StatusBadRequest)
+			return
+		}
+
+		_, err := Execute(
+			"UPDATE events SET title = $1, description = $2, duration = $3 WHERE recurrence_id = $4 AND date >= $5",
+			event.Title, event.Description, event.Duration, recurrence_id, date,
+		)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		_, err := Execute(
+			`UPDATE events SET title = $1, description = $2, duration = $3, date = $4, recurring_id = "" WHERE id = $5`,
+			event.Title, event.Description, event.Duration, event.Date, eventId,
+		)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -148,14 +171,26 @@ func deleteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-
 	eventId := vars["id"]
+	recurring := r.URL.Query().Get("recurring")
 
-	_, err := Execute("DELETE FROM events WHERE id = $1", eventId)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
-		return
+	var event []Event
+	Query(&event, "SELECT * FROM events WHERE id = $1", eventId)
+
+	if event[0].RecurrenceId != "" && recurring == "true" {
+		_, err := Execute("DELETE FROM events WHERE recurrence_id = $1", event[0].RecurrenceId)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		_, err := Execute("DELETE FROM events WHERE id = $1", eventId)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -199,8 +234,12 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						"type":        "string",
 						"description": "The date of the event in ISO 8601 format",
 					},
+					"recurring": map[string]string{
+						"type":        "boolean",
+						"description": "Whether the event is recurring or not",
+					},
 				},
-				"required": []string{"title", "duration", "date"},
+				"required": []string{"title", "duration", "date", "recurring"},
 			},
 		},
 	}
@@ -229,6 +268,9 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						For the description, if information is given then provide a short description of the event. If no information is given, then leave it blank.
 						For example, if the content given is "Meeting John at 5:00 PM", the title could be "Meeting with John" and the description would be blank.
 						If the content given is "Meeting John at 5:00 PM to discuss the project", the title could be "Project Discussion with John" and the description could be "Discuss the project with John".
+						Additionally, mark if the event is going to be a recurring event or not.
+						For example, if the content given is "Meeting John at 5:00 PM every Monday", the title would be "Meeting with John" and the event would be marked as recurring.
+						In this case, the date should be the next coming Monday, or today if today is Monday in Eastern Time.
 					`, time.Now().UTC().Format("2006-01-02T15:04:05-0700")),
 				},
 				{
@@ -254,6 +296,7 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 		Description string    `json:"description"`
 		Duration    int       `json:"duration"`
 		Date        time.Time `json:"date"`
+		Recurring   bool      `json:"recurring"`
 	}
 
 	err = json.Unmarshal([]byte(response.Choices[0].Message.FunctionCall.Arguments), &functionResponse)
@@ -263,30 +306,63 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event_id := uuid.New().String()
-	_, err = Execute(
-		`
-		INSERT INTO events (id, calendar_id, title, description, duration, date, accepted)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`,
-		event_id, request.CalendarId, functionResponse.Title, functionResponse.Description, functionResponse.Duration, functionResponse.Date.Format(time.RFC3339), true,
-	)
-	if err != nil {
-		log.Println("Error inserting event into database:", err)
-		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
-		return
-	}
+	if functionResponse.Recurring {
+		var event Event
+		recurrence_id := uuid.New().String()
+		for i := 0; i < 100; i++ {
+			event_id := uuid.New().String()
+			_, err = Execute(
+				`
+				INSERT INTO events (id, calendar_id, title, description, duration, date, recurrence_id)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)
+				`,
+				event_id, request.CalendarId, functionResponse.Title, functionResponse.Description, functionResponse.Duration, functionResponse.Date.AddDate(0, 0, i*7).Format(time.RFC3339), recurrence_id,
+			)
+			if err != nil {
+				log.Println("Error inserting event into database:", err)
+				http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+				return
+			}
 
-	event := Event{
-		Id:          event_id,
-		CalendarId:  request.CalendarId,
-		Title:       functionResponse.Title,
-		Description: &functionResponse.Description,
-		Duration:    functionResponse.Duration,
-		Date:        functionResponse.Date.Format(time.RFC3339),
-		Accepted:    true,
-	}
+			if i == 0 {
+				event = Event{
+					Id:           event_id,
+					CalendarId:   request.CalendarId,
+					Title:        functionResponse.Title,
+					Description:  &functionResponse.Description,
+					Duration:     functionResponse.Duration,
+					Date:         functionResponse.Date.Format(time.RFC3339),
+					RecurrenceId: recurrence_id,
+				}
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(event)
+	} else {
+		event_id := uuid.New().String()
+		_, err = Execute(
+			`
+			INSERT INTO events (id, calendar_id, title, description, duration, date)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			`,
+			event_id, request.CalendarId, functionResponse.Title, functionResponse.Description, functionResponse.Duration, functionResponse.Date.Format(time.RFC3339),
+		)
+		if err != nil {
+			log.Println("Error inserting event into database:", err)
+			http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(event)
+		event := Event{
+			Id:          event_id,
+			CalendarId:  request.CalendarId,
+			Title:       functionResponse.Title,
+			Description: &functionResponse.Description,
+			Duration:    functionResponse.Duration,
+			Date:        functionResponse.Date.Format(time.RFC3339),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(event)
+	}
 }
