@@ -150,7 +150,7 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		_, err := Execute(
-			`UPDATE events SET title = $1, description = $2, duration = $3, date = $4, recurring_id = "" WHERE id = $5`,
+			`UPDATE events SET title = $1, description = $2, duration = $3, date = $4, recurrence_id = NULL WHERE id = $5`,
 			event.Title, event.Description, event.Duration, event.Date, eventId,
 		)
 		if err != nil {
