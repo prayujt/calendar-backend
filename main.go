@@ -67,6 +67,11 @@ func main() {
 	r.HandleFunc("/events/{id}", updateEvent).Methods("PUT")
 	r.HandleFunc("/events/{id}", deleteEvent).Methods("DELETE")
 
+	r.HandleFunc("/tasks", getTasks).Methods("GET")
+	r.HandleFunc("/tasks", createTask).Methods("POST")
+	r.HandleFunc("/tasks/{id}", updateTask).Methods("PUT")
+	r.HandleFunc("/tasks/{id}", deleteTask).Methods("DELETE")
+
 	r.HandleFunc("/calendars", getCalendars).Methods("GET")
 	r.HandleFunc("/calendars", createCalendar).Methods("POST")
 	r.HandleFunc("/calendars/{id}", updateCalendar).Methods("PUT")

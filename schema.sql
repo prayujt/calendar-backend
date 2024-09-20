@@ -28,3 +28,16 @@ CREATE TABLE events (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (calendar_id) REFERENCES calendars(id) ON DELETE CASCADE
 );
+
+CREATE TABLE tasks (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    calendar_id VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    duration INT,
+    deadline TIMESTAMP,
+    difficulty INT,
+    priority INT,
+    is_completed BOOLEAN DEFAULT FALSE
+);

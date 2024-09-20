@@ -269,11 +269,10 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						For example, if the content given is "Meeting John at 5:00 PM", the title could be "Meeting with John" and the description would be blank.
 						If the content given is "Meeting John at 5:00 PM to discuss the project", the title could be "Project Discussion with John" and the description could be "Discuss the project with John".
 						Additionally, mark if the event is going to be a recurring event or not.
-						The date should be the next coming instance of the event, with regards to Eastern Time.
-						For example, if the content given is "Meeting John at 5:00 PM every Monday", the title would be "Meeting with John" and the event would be marked as recurring.
-						If today is Monday (in the eastern time zone), the date should be today, regardless of the current time.
-						If today is Tuesday, the date should be next Monday.
-					`, time.Now().UTC().Format("2006-01-02T15:04:05-0700")),
+						The date should be the date of the event in the current week, regardless of the current day.
+						For example, if the content given is "Meeting John at 5:00 PM every Monday", the title would be "Meeting with John" and the event would be marked as recurring. Also, in this example, the date should be the Monday of the current week, regardless of the current day.
+						Again, as a reminder, the exact time right now is %s (in ISO 8601 format and UTC).
+					`, time.Now().UTC().Format("2006-01-02T15:04:05-0700"), time.Now().UTC().Format("2006-01-02T15:04:05-0700")),
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
