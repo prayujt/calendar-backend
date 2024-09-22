@@ -73,7 +73,7 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 	_, err := Execute(
 		`
 		INSERT INTO events (id, calendar_id, title, description, duration, date)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		VALUES ($1, $2, $3, $4, $5, $6)`,
 		event.Id, event.CalendarId, event.Title, event.Description, event.Duration, event.Date,
 	)
 	if err != nil {
