@@ -38,6 +38,8 @@ type CreateEventRequest struct {
 	Recurring   bool      `json:"recurring"`
 }
 
+var dateFormat = "2006-01-02T15:04:05Z07:00"
+
 // GET /events
 func getEvents(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)
@@ -182,7 +184,7 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		var events []Event
 		Query(&events, "SELECT * FROM events WHERE id = $1", eventId)
 		recurrence_id := events[0].RecurrenceId
-		date := events[0].Date
+		oldDate := events[0].Date
 
 		if recurrence_id == "" {
 			log.Println("Event is not recurring")
@@ -190,12 +192,32 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err := Execute(
-			"UPDATE events SET title = $1, description = $2, duration = $3 WHERE recurrence_id = $4 AND date >= $5",
-			event.Title, event.Description, event.Duration, recurrence_id, date,
+		oldEventDate, err := time.Parse(dateFormat, oldDate)
+		if err != nil {
+			log.Println("Error parsing old event date:", err)
+			http.Error(w, `{"error": "Invalid event date"}`, http.StatusInternalServerError)
+			return
+		}
+
+		newEventDate, err := time.Parse(dateFormat, event.Date)
+		if err != nil {
+			log.Println("Error parsing new event date:", err)
+			http.Error(w, `{"error": "Invalid new event date"}`, http.StatusInternalServerError)
+			return
+		}
+
+		dateDifference := newEventDate.Sub(oldEventDate)
+		interval := dateDifference.Seconds() / 86400
+
+		_, err = Execute(
+			`
+			UPDATE events
+			SET title = $1, description = $2, duration = $3, date = date + $6 * INTERVAL '1 day'
+			WHERE recurrence_id = $4 AND date >= $5
+			`, event.Title, event.Description, event.Duration, recurrence_id, oldDate, interval,
 		)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error updating events:", err)
 			http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
 			return
 		}
@@ -323,7 +345,7 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 						The date should be the date of the event in the current week, regardless of the current day.
 						For example, if the content given is "Meeting John at 5:00 PM every Monday", the title would be "Meeting with John" and the event would be marked as recurring. Also, in this example, the date should be the Monday of the current week, regardless of the current day.
 						Again, as a reminder, the exact time right now is %s (in ISO 8601 format and UTC).
-					`, time.Now().UTC().Format("2006-01-02T15:04:05Z07:00"), time.Now().UTC().Format("2006-01-02T15:04:05Z07:00")),
+					`, time.Now().UTC().Format(dateFormat), time.Now().UTC().Format(dateFormat)),
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
