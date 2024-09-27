@@ -212,9 +212,9 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		_, err = Execute(
 			`
 			UPDATE events
-			SET title = $1, description = $2, duration = $3, date = date + $6 * INTERVAL '1 day'
-			WHERE recurrence_id = $4 AND date >= $5
-			`, event.Title, event.Description, event.Duration, recurrence_id, oldDate, interval,
+			SET title = $1, calendar_id = $2, description = $3, duration = $4, date = date + $7 * INTERVAL '1 day'
+			WHERE recurrence_id = $5 AND date >= $6
+			`, event.Title, event.CalendarId, event.Description, event.Duration, recurrence_id, oldDate, interval,
 		)
 		if err != nil {
 			log.Println("Error updating events:", err)
@@ -223,8 +223,8 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		_, err := Execute(
-			`UPDATE events SET title = $1, description = $2, duration = $3, date = $4, recurrence_id = NULL WHERE id = $5`,
-			event.Title, event.Description, event.Duration, event.Date, eventId,
+			`UPDATE events SET title = $1, calendar_id = $2, description = $3, duration = $4, date = $5, recurrence_id = NULL WHERE id = $6`,
+			event.Title, event.CalendarId, event.Description, event.Duration, event.Date, eventId,
 		)
 		if err != nil {
 			log.Println(err)
