@@ -1,2 +1,2 @@
 # Calendar Server
-An open-source calendar server, written in Rust
+An open-source calendar server, written in Go
