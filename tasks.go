@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -35,6 +37,7 @@ func getTasks(w http.ResponseWriter, r *http.Request) {
 		`
 		SELECT * FROM tasks
 		WHERE user_id = $1
+		ORDER BY completed ASC, deadline ASC
 		`,
 		userId,
 	)
@@ -54,15 +57,17 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userId := session.Identity.Id
+	task_id := uuid.New().String()
 
 	var task Task
 	json.NewDecoder(r.Body).Decode(&task)
 
 	_, err := Execute(
 		`
-		INSERT INTO tasks (user_id, calendar_id, title, description, duration, deadline, difficulty, priority)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO tasks (id, user_id, calendar_id, title, description, duration, deadline, difficulty, priority, completed)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		`,
+		task_id,
 		userId,
 		task.CalendarId,
 		task.Title,
@@ -71,9 +76,11 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 		task.Deadline,
 		task.Difficulty,
 		task.Priority,
+		false,
 	)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
 		return
 	}
@@ -115,6 +122,7 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
 		return
 	}

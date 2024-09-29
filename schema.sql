@@ -35,9 +35,9 @@ CREATE TABLE tasks (
     calendar_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    duration INT,
+    duration INT NULL,
     deadline TIMESTAMP,
     difficulty INT,
     priority INT,
-    is_completed BOOLEAN DEFAULT FALSE
+    completed BOOLEAN DEFAULT FALSE
 );
