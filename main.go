@@ -33,6 +33,7 @@ type Traits struct {
 
 var kratosBaseUrl string
 var environment string
+var mailPassword string
 
 func main() {
 	kratosBaseUrl = os.Getenv("KRATOS_BASE_URL")
@@ -43,6 +44,11 @@ func main() {
 	if databaseUrl == "" {
 		log.Fatal("DATABASE_URL must be set")
 	}
+	mailPassword = os.Getenv("MAIL_PASSWORD")
+	if mailPassword == "" {
+		log.Fatal("MAIL_PASSWORD must be set")
+	}
+
 	environment = os.Getenv("ENVIRONMENT")
 	if environment == "" {
 		environment = "development"
@@ -100,7 +106,7 @@ func getSession(r *http.Request) *Session {
 				Id:    "b849d4e4-de61-4c27-b6c6-7f2566f7079f",
 				State: "active",
 				Traits: Traits{
-					Email:     "prayujtuli@hotmail.com",
+					Email:     "prayuj@prayujt.com",
 					FirstName: "Prayuj",
 					LastName:  "Tuli",
 					Username:  "prayujt",
