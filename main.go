@@ -81,6 +81,7 @@ func main() {
 	r.HandleFunc("/events/generate", generateEventInformation).Methods("POST")
 	r.HandleFunc("/events/{id}", updateEvent).Methods("PUT")
 	r.HandleFunc("/events/{id}", deleteEvent).Methods("DELETE")
+	r.HandleFunc("/events/{id}/share", shareEvent).Methods("POST")
 
 	r.HandleFunc("/tasks", getTasks).Methods("GET")
 	r.HandleFunc("/tasks", createTask).Methods("POST")

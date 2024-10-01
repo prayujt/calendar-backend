@@ -398,3 +398,30 @@ func generateEventInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(functionResponse)
 }
+
+// POST /events/{id}/share
+func shareEvent(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+	eventId := vars["id"]
+
+	var event []Event
+	Query(&event, "SELECT * FROM events WHERE id = $1", eventId)
+
+	var body struct {
+		Emails []string `json:"emails"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error": "Invalid request"}`, http.StatusBadRequest)
+		return
+	}
+
+	SendEvent(body.Emails, "Shared with you by Prayuj Calendar", event[0], false)
+
+	w.WriteHeader(http.StatusOK)
+}
