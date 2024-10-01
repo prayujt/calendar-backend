@@ -27,6 +27,14 @@ func GetUsers() []User {
 				Username:  "prayujt",
 				Avatar:    "https://static.prayujt.com/images/PRAYUJ.jpg",
 			},
+			{
+				Id:        "075a7914-1b03-4e02-b883-894857198a25",
+				Email:     "test@email.com",
+				FirstName: "Test",
+				LastName:  "User",
+				Username:  "testuser",
+				Avatar:    "",
+			},
 		}
 	}
 	client := &http.Client{}
