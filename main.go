@@ -29,16 +29,22 @@ type Traits struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Username  string `json:"username"`
+	Avatar    string `json:"avatar"`
 }
 
-var kratosBaseUrl string
+var kratosPublicUrl string
+var kratosAdminUrl string
 var environment string
 var mailPassword string
 
 func main() {
-	kratosBaseUrl = os.Getenv("KRATOS_BASE_URL")
-	if kratosBaseUrl == "" {
-		kratosBaseUrl = "https://idp.prayujt.com"
+	kratosPublicUrl = os.Getenv("KRATOS_PUBLIC_URL")
+	if kratosPublicUrl == "" {
+		kratosPublicUrl = "https://idp.prayujt.com"
+	}
+	kratosAdminUrl = os.Getenv("KRATOS_ADMIN_URL")
+	if kratosAdminUrl == "" {
+		kratosAdminUrl = "http://kratos-admin.kratos.svc.cluster.local"
 	}
 	databaseUrl := os.Getenv("DATABASE_URL")
 	if databaseUrl == "" {
@@ -61,7 +67,8 @@ func main() {
 		log.Println("Running in development mode")
 	} else {
 		log.Println("Running in production mode")
-		log.Printf("Using Kratos at: %s", kratosBaseUrl)
+		log.Printf("Using Kratos public at: %s", kratosPublicUrl)
+		log.Printf("Using Kratos admin at: %s", kratosAdminUrl)
 	}
 
 	r := mux.NewRouter()
@@ -84,6 +91,9 @@ func main() {
 	r.HandleFunc("/calendars/{id}", deleteCalendar).Methods("DELETE")
 
 	fmt.Println("Server running on 0.0.0.0:8080")
+
+	log.Println("All Users:")
+	log.Printf("%+v", GetUsers())
 
 	if environment == "development" {
 		corsMiddleware := handlers.CORS(
@@ -110,6 +120,7 @@ func getSession(r *http.Request) *Session {
 					FirstName: "Prayuj",
 					LastName:  "Tuli",
 					Username:  "prayujt",
+					Avatar:    "",
 				},
 			},
 		}
@@ -122,7 +133,7 @@ func getSession(r *http.Request) *Session {
 	log.Printf("Session cookie: %s", sessionCookie.Value)
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sessions/whoami", kratosBaseUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sessions/whoami", kratosPublicUrl), nil)
 	if err != nil {
 		return nil
 	}
