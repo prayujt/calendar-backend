@@ -9,10 +9,11 @@ import (
 )
 
 type Calendar struct {
-	Id        string `json:"id" database:"id"`
-	Name      string `json:"name" database:"name"`
-	Color     string `json:"color" database:"color"`
-	IsDefault bool   `json:"isDefault" database:"is_default"`
+	Id        string   `json:"id" database:"id"`
+	Name      string   `json:"name" database:"name"`
+	Color     string   `json:"color" database:"color"`
+	IsDefault bool     `json:"isDefault" database:"is_default"`
+	Members   []string `json:"members" database:"members"`
 }
 
 // GET /calendars
@@ -36,7 +37,30 @@ func getCalendars(w http.ResponseWriter, r *http.Request) {
 
 	if len(calendars) == 0 {
 		calendars = []Calendar{}
+	} else {
+		for idx, calendar := range calendars {
+			members := []struct {
+				UserId string `json:"userId" database:"user_id"`
+			}{}
+
+			Query(&members,
+				`
+				SELECT user_id
+				FROM calendar_members
+				WHERE calendar_id = $1
+				`,
+				calendar.Id,
+			)
+			userIds := make([]string, len(members))
+
+			for i, member := range members {
+				userIds[i] = member.UserId
+			}
+
+			calendars[idx].Members = userIds
+		}
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(calendars)
 }
@@ -150,6 +174,78 @@ func deleteCalendar(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		http.Error(w, `{"error": "Error deleting calendar"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// POST /calendars/{id}/members
+func addCalendarMember(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	calendarId := vars["id"]
+
+	var member struct {
+		UserId string `json:"userId"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&member)
+	if err != nil {
+		http.Error(w, `{"error": "Invalid JSON"}`, http.StatusBadRequest)
+		return
+	}
+
+	_, err = Execute(
+		`
+		INSERT INTO calendar_members (calendar_id, user_id)
+		VALUES ($1, $2)
+		`,
+		calendarId,
+		member.UserId,
+	)
+	if err != nil {
+		http.Error(w, `{"error": "Error adding member to calendar"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// DELETE /calendars/{id}/members/{userId}
+func removeCalendarMember(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	calendarId := vars["id"]
+	userId := vars["userId"]
+
+	_, err := Execute(
+		`
+		DELETE FROM calendar_members
+		WHERE
+		calendar_id = $1
+		AND user_id = $2
+		AND calendar_id IN (
+			SELECT id
+			FROM calendars
+			WHERE user_id = $3
+		)
+		`,
+		calendarId,
+		userId,
+		session.Identity.Id,
+	)
+	if err != nil {
+		http.Error(w, `{"error": "Error removing member from calendar"}`, http.StatusInternalServerError)
 		return
 	}
 

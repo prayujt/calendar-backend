@@ -7,22 +7,25 @@ import (
 	"net/http"
 )
 
-func GetUsers() []Traits {
+type User struct {
+	Id        string `json:"id"`
+	Email     string `json:"email"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Username  string `json:"username"`
+	Avatar    string `json:"avatar"`
+}
+
+func GetUsers() []User {
 	if environment == "development" {
-		return []Traits{
+		return []User{
 			{
-				Email:     "prayujtuli@hotmail.com",
+				Id:        "b849d4e4-de61-4c27-b6c6-7f2566f7079f",
+				Email:     "prayuj@prayujt.com",
 				FirstName: "Prayuj",
 				LastName:  "Tuli",
 				Username:  "prayujt",
-				Avatar:    "https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50",
-			},
-			{
-				Email:     "test@example.com",
-				FirstName: "Test",
-				LastName:  "User",
-				Username:  "testuser",
-				Avatar:    "https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50",
+				Avatar:    "https://static.prayujt.com/images/PRAYUJ.jpg",
 			},
 		}
 	}
@@ -45,9 +48,10 @@ func GetUsers() []Traits {
 		return nil
 	}
 
-	var users []Traits
+	var users []User
 	for _, identity := range identities {
-		users = append(users, Traits{
+		users = append(users, User{
+			Id:        identity.Id,
 			Email:     identity.Traits.Email,
 			FirstName: identity.Traits.FirstName,
 			LastName:  identity.Traits.LastName,
@@ -56,4 +60,25 @@ func GetUsers() []Traits {
 		})
 	}
 	return users
+}
+
+func getUsers(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	if session == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !session.Active {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	users := GetUsers()
+	if users == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
 }

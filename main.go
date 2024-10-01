@@ -26,8 +26,8 @@ type Identity struct {
 
 type Traits struct {
 	Email     string `json:"email"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 	Username  string `json:"username"`
 	Avatar    string `json:"avatar"`
 }
@@ -73,6 +73,8 @@ func main() {
 
 	r := mux.NewRouter()
 
+	r.HandleFunc("/users", getUsers).Methods("GET")
+
 	r.HandleFunc("/events", getEvents).Methods("GET")
 	r.HandleFunc("/events/{id}", getEvent).Methods("GET")
 	r.HandleFunc("/events", createEvent).Methods("POST")
@@ -89,6 +91,9 @@ func main() {
 	r.HandleFunc("/calendars", createCalendar).Methods("POST")
 	r.HandleFunc("/calendars/{id}", updateCalendar).Methods("PUT")
 	r.HandleFunc("/calendars/{id}", deleteCalendar).Methods("DELETE")
+
+	r.HandleFunc("/calendars/{id}/members", addCalendarMember).Methods("POST")
+	r.HandleFunc("/calendars/{id}/members/{userId}", removeCalendarMember).Methods("DELETE")
 
 	fmt.Println("Server running on 0.0.0.0:8080")
 
